@@ -1,0 +1,27 @@
+create or replace function atenciones (id integer) returns integer
+as $$ --Lenguaje procedural
+declare
+	nombre varchar := '';
+	anio integer := 0;
+	total integer := 0;
+begin
+	if not exists (select medico.id_medi from medico where medico.id_medi = id) then
+		raise notice 'El id "%" del medico no existe en la Base de Datos', id;
+	else
+		select nombre_medi, to_char(fecha_de_part, 'YYYY'), count(id_part) into nombre, anio, total
+		from medico inner join parto on parto.id_medi=medico.id_medi
+		where medico.id_medi = id
+		group by nombre_medi, to_char(fecha_de_part, 'YYYY');
+		--Enviar resultado de la consulta
+		raise notice 
+		'
+		Nombre: %, 
+		Año: %,
+		Total: %',
+		nombre, anio, total;
+	end if;
+return total;
+end $$
+language plpgsql;
+--prueba del cursor
+select atenciones (333335620)
