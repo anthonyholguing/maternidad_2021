@@ -1,0 +1,65 @@
+-------------------------------------------------------------------------------------------------------------------
+--PRIMERA CONSULTA
+--------------------------------------------------------------------------------------------------------------------
+select
+	 medico.nombre_medi as medico,
+	 to_char(detallecita.fecha_cita,'YYYY') as año, 
+	 count (detallecita.id_medi) as citas
+from 
+	medico inner join detallecita on medico.id_medi=detallecita.id_medi 
+group by  medico.nombre_medi, 
+	to_char(detallecita.fecha_cita,'YYYY')
+	order by medico.nombre_medi
+---------------------------------------------------------------------------------------------------------------------
+--SEGUNDA CONSULTA
+---------------------------------------------------------------------------------------------------------------------
+do $$
+declare
+	registros record; --Para acceder a los datos del cursor
+	nocancelada cursor for select  id_admin, 
+	count (agendacancelada_agen),to_char(agendamiento.fechacita_agen,'YYYY')
+	from agendamiento where agendacancelada_agen like '%No%'
+	group by  id_admin, to_char(agendamiento.fechacita_agen,'YYYY'); 
+	sicancelada cursor for select  id_admin, 
+	count (agendacancelada_agen),to_char(agendamiento.fechacita_agen,'YYYY')
+	from agendamiento where agendacancelada_agen like '%Si%'
+	group by  id_admin, to_char(agendamiento.fechacita_agen,'YYYY');
+begin
+	for registros in nocancelada
+	loop
+		raise notice 
+		'
+		Doctor: %, 
+		Fecha: %
+		No cancelada: %',
+		registros.id_admin, registros.to_char,registros.count;
+	end loop;
+	for registros in sicancelada
+	loop
+		raise notice 
+		'
+		Doctor: %, 
+		Fecha: %
+		Si cancelada: %',
+		registros.id_admin, registros.to_char,registros.count;
+	end loop;
+end $$
+language 'plpgsql';
+
+--------------------------------------------------------------------------------------------------------------------------------
+--TERCERA CONSULTA
+-------------------------------------------------------------------------------------------------------------------------------
+select  count(translado_a_salamaternidad.id_part)as cantidad, to_char(fecha_de_part,'YYYY')as fecha,salamaternidad.id_mater as sala
+from parto inner join translado_a_salamaternidad on parto.id_part = translado_a_salamaternidad.id_part
+	inner join salamaternidad on salamaternidad.id_mater = translado_a_salamaternidad.id_mater 
+	group by to_char(fecha_de_part,'YYYY'), salamaternidad.id_mater
+
+---------------------------------------------------------------------------------------------------------------------------------
+--CUARTA CONSULTA
+----------------------------------------------------------------------------------------------------------------------------------
+select count(examenestipo.fecha_exam), nombretipo, to_char(examenes.fecha_exam, 'YYYY')
+from  examenes 
+	inner join examenestipo on examenestipo.fecha_exam = examenes.fecha_exam 
+	inner join tipo on tipo.id_tipo = examenestipo.id_tipo
+	group by nombretipo, to_char(examenes.fecha_exam, 'YYYY')
+	order by to_char(examenes.fecha_exam, 'YYYY')
