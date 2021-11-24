@@ -1,0 +1,30 @@
+-------------------------------
+TRIGGER
+-----------------------------------
+--TRIGGER
+CREATE OR REPLACE FUNCTION ft_restringir()
+RETURNS TRIGGER AS $$
+DECLARE
+	ingresos bigint:= 0;
+	registros record;
+	--Consultar el dato
+	datos_cursor cursor for select count((EXTRACT(week FROM fechaingreso_mater))) from translado_a_salamaternidad
+		inner join salamaternidad on salamaternidad.id_mater = translado_a_salamaternidad.id_mater
+		where salamaternidad.id_mater = new.id_mater
+		group by salamaternidad.id_mater, (EXTRACT(week FROM fechaingreso_mater)) 
+		order by (EXTRACT(week FROM fechaingreso_mater));
+BEGIN
+	FOR registros IN datos_cursor
+	loop
+		if (registros.count > 2) then --Los tres puestos por semana de la sala ya estan ocupados
+			raise exception 'La sala no se puede ocupar por que ya esta ocupada por el máximo permitido';
+		end if;
+	END LOOP;
+RETURN NEW;
+END $$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_restringir
+BEFORE INSERT OR UPDATE ON translado_a_salamaternidad
+FOR EACH ROW
+EXECUTE PROCEDURE ft_restringir()
