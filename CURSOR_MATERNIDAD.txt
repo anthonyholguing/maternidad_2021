@@ -1,0 +1,28 @@
+----------------------------------------------------------------------------------------------------------------------------
+CURSOR
+-----------------------------------------------------------------------------------------------------------------------------
+do $$
+declare
+	anio_actual int:= (SELECT EXTRACT(YEAR FROM DATE (current_date)));
+	edad int := 0; 		
+	registros record; 			
+	total int:=0;
+	anio int:=0;
+	historico cursor for select ((SELECT EXTRACT(YEAR FROM fechanacimiento_madre))) as anio_nacimiento, 
+		count ((SELECT EXTRACT(YEAR FROM fechanacimiento_madre))) as total,
+		to_char(parto.fecha_de_part,'YYYY') as año from madre
+		inner join parto on madre.id_madre = parto.id_madre
+		group by ((SELECT EXTRACT(YEAR FROM fechanacimiento_madre))), 
+		to_char(parto.fecha_de_part,'YYYY');
+begin
+	for registros in historico
+	loop
+		raise notice
+		'
+		Edad: %, 
+		Total: %
+		Año: %',
+		(anio_actual - registros.anio_nacimiento), registros.total , registros.año;
+	end loop;
+end $$
+language 'plpgsql';
